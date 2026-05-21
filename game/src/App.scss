@@ -1101,3 +1101,16 @@
 button, .member-chip, .suggestion-card {
   transition: all 200ms ease;
 }
+
+.stagebar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.stagebar__steps { display:flex; gap:8px; flex-wrap:wrap; }
+.stagebar__step { background:#151a24; color:#cdd6f4; border:1px solid #2a3142; border-radius:999px; padding:8px 12px; display:flex; gap:8px; align-items:center; }
+.stagebar__step.active { border-color:#d1b47a; color:#fff; }
+.stagebar__step.done { opacity:.8; }
+.stagebar__cta { background:#d1b47a; color:#161616; border:0; border-radius:999px; padding:10px 14px; font-weight:600; }
