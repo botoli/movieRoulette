@@ -1,0 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Sora:wght@400;500;600&display=swap");
+
+:root {
+  --bg-app: #0b0d10;
+  --bg-panel: rgba(16, 18, 22, 0.94);
+  --ink: #f2f4f7;
+  --muted: #9aa0aa;
+  --accent: #d1b47a;
+  --accent-2: #7fb4c7;
+  --line: rgba(96, 104, 116, 0.35);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --radius: 18px;
+  --font-main: "Sora", sans-serif;
+  --font-display: "Playfair Display", serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-app);
+  background-image:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(209, 180, 122, 0.1),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 80% 0%,
+      rgba(127, 180, 199, 0.08),
+      transparent 40%
+    );
+  color: var(--ink);
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}

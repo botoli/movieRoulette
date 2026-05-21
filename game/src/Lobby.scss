@@ -1,0 +1,122 @@
+.lobby {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-app);
+}
+
+.lobby__card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px 32px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(
+    180deg,
+    rgba(17, 19, 24, 0.92) 0%,
+    rgba(12, 14, 18, 0.98) 100%
+  );
+  box-shadow: var(--shadow);
+  text-align: center;
+
+  h1 {
+    margin: 16px 0 8px;
+    font-family: var(--font-display);
+    font-size: 30px;
+    color: var(--ink);
+  }
+}
+
+.lobby__logo {
+  display: flex;
+  justify-content: center;
+}
+
+.lobby__lead {
+  margin: 0 0 28px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.lobby__primary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
+.lobby__divider {
+  margin: 24px 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+
+  span {
+    display: block;
+  }
+}
+
+.lobby__join {
+  display: flex;
+  gap: 10px;
+
+  input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: rgba(8, 10, 14, 0.65);
+    color: var(--ink);
+    font-size: 14px;
+    outline: none;
+  }
+
+  input:focus {
+    border-color: rgba(209, 180, 122, 0.65);
+    box-shadow: 0 0 0 2px rgba(209, 180, 122, 0.2);
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(209, 180, 122, 0.7);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  button:focus-visible {
+    outline: 2px solid rgba(209, 180, 122, 0.55);
+    outline-offset: 2px;
+  }
+}
+
+.lobby__error {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: #ff6b6b;
+}
