@@ -227,7 +227,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
   gap: 28px;
   align-items: start;
   &__col {
@@ -239,6 +239,11 @@
 
 .layout--single {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.layout__col--roulette .panel {
+  position: sticky;
+  top: 20px;
 }
 
 .panel {
@@ -377,6 +382,29 @@
   color: #141516;
   font-weight: 600;
   cursor: pointer;
+}
+
+.btn {
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.btn--primary {
+  background: var(--accent) !important;
+  color: #141516 !important;
+  border: none !important;
+}
+
+.btn--secondary {
+  background: rgba(16, 18, 22, 0.9) !important;
+  color: var(--ink) !important;
+  border: 1px solid rgba(209, 180, 122, 0.35) !important;
+}
+
+.btn--ghost {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--line) !important;
 }
 
 .input-row button:focus-visible,
@@ -634,6 +662,7 @@
   flex-direction: column;
   gap: 16px;
   align-items: center;
+  padding-bottom: 12px;
 }
 
 .roulette__circle {
@@ -811,6 +840,10 @@
   font-size: 15px;
 }
 
+.mobile-action-bar {
+  display: none;
+}
+
 .winner-card {
   display: flex;
   gap: 12px;
@@ -901,6 +934,10 @@
   .layout {
     grid-template-columns: 1fr;
   }
+
+  .layout__col--roulette .panel {
+    position: static;
+  }
 }
 
 @media (max-width: 820px) {
@@ -963,6 +1000,33 @@
 
   .roulette__node-card {
     width: 120px;
+  }
+
+  .roulette__button {
+    display: none;
+  }
+
+  .mobile-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    margin: 10px -18px -28px;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 12, 16, 0.75),
+      rgba(10, 12, 16, 0.98)
+    );
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+
+  .mobile-action-bar .btn {
+    padding: 12px 8px;
+    font-size: 14px;
   }
 }
 

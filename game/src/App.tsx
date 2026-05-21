@@ -611,9 +611,7 @@ function App({ roomId, onLeave }: AppProps) {
                   <PlusCircle size={20} className="panel__icon" />
                   <div>
                     <h2 className="panel__title">Добавить фильм</h2>
-                    <p className="panel__subtitle">
-                      Внеси название фильма в общий список
-                    </p>
+                    <p className="panel__subtitle">В общий пул</p>
                   </div>
                 </div>
                 <div className="input-row">
@@ -629,6 +627,7 @@ function App({ roomId, onLeave }: AppProps) {
                     aria-label="Название фильма"
                   />
                   <button
+                    className="btn btn--primary"
                     type="button"
                     onClick={() => addMovie(inputValue, undefined, rutubeValue)}
                     disabled={!canAddMore}
@@ -636,10 +635,7 @@ function App({ roomId, onLeave }: AppProps) {
                     Добавить
                   </button>
                 </div>
-                <p className="input-hint">
-                  Подсказки появляются при вводе названия. Enter добавляет в
-                  список.
-                </p>
+                <p className="input-hint">Enter — быстрое добавление.</p>
                 {!poiskkinoToken && (
                   <p className="input-hint input-hint--warn">
                     Подсказки по базе фильмов включаются, когда задан
@@ -691,9 +687,7 @@ function App({ roomId, onLeave }: AppProps) {
                     <ListFilter size={20} className="panel__icon" />
                     <div>
                       <h2 className="panel__title">Список на прокрутку</h2>
-                      <p className="panel__subtitle">
-                        Здесь появятся добавленные фильмы
-                      </p>
+                      <p className="panel__subtitle">Текущий пул</p>
                     </div>
                   </div>
                   <div className="panel__header-actions">
@@ -741,9 +735,7 @@ function App({ roomId, onLeave }: AppProps) {
                     <Heart size={20} className="panel__icon" />
                     <div>
                       <h2 className="panel__title">Фильмы друзей</h2>
-                      <p className="panel__subtitle">
-                        Выбирай чьи фильмы отправить в рулетку
-                      </p>
+                      <p className="panel__subtitle">Быстрый импорт в пул</p>
                     </div>
                   </div>
                   {desired.length > 0 && (
@@ -775,7 +767,7 @@ function App({ roomId, onLeave }: AppProps) {
                 )}
                 <button
                   type="button"
-                  className="reset-button desired-panel__open"
+                  className="btn btn--ghost desired-panel__open"
                   onClick={() => setActiveView("desired")}
                 >
                   Открыть желаемые
@@ -783,15 +775,13 @@ function App({ roomId, onLeave }: AppProps) {
               </section>
             </div>
 
-            <div className="layout__col">
+            <div className="layout__col layout__col--roulette">
               <section className="panel">
                 <div className="panel__header">
                   <Shuffle size={20} className="panel__icon" />
                   <div>
                     <h2 className="panel__title">Круговая рулетка</h2>
-                    <p className="panel__subtitle">
-                      Нажми кнопку, чтобы выбрать случайный фильм
-                    </p>
+                    <p className="panel__subtitle">Случайный выбор из пула</p>
                   </div>
                 </div>
                 <div className="roulette__container">
@@ -882,13 +872,13 @@ function App({ roomId, onLeave }: AppProps) {
                         : "Выбор: никто"}
                   </p>
                   <button
-                    className="roulette__button"
+                    className="roulette__button btn btn--primary"
                     type="button"
                     onClick={spin}
                     disabled={activeMovies.length <= 1 || isSpinning}
                   >
                     <Shuffle size={18} />
-                    КРУТИТЬ РУЛЕТКУ
+                    Крутить
                   </button>
                   {winner && (
                     <div className="winner-card">
@@ -918,6 +908,35 @@ function App({ roomId, onLeave }: AppProps) {
               </section>
             </div>
           </main>
+        )}
+        {activeView === "roulette" && (
+          <div className="mobile-action-bar">
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => {
+                setActiveView("desired");
+              }}
+            >
+              Добавить
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => addDesiredToRoulette()}
+              disabled={desired.length === 0}
+            >
+              В пул
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={spin}
+              disabled={activeMovies.length <= 1 || isSpinning}
+            >
+              Крутить
+            </button>
+          </div>
         )}
 
         {activeView === "desired" && (
