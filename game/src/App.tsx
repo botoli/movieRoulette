@@ -4,7 +4,6 @@ import {
   Copy,
   Film,
   Heart,
-  Home,
   Link2,
   ListFilter,
   PlusCircle,
@@ -116,9 +115,7 @@ function App({ roomId, onLeave }: AppProps) {
   const [wheelRotation, setWheelRotation] = useState(0);
   const [wheelTransition, setWheelTransition] = useState("none");
   const [eliminatingTitle, setEliminatingTitle] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<
-    "roulette" | "desired" | "winners"
-  >("roulette");
+  const [currentStep, setCurrentStep] = useState<"prep" | "pool" | "roulette" | "result">("prep");
   const [toast, setToast] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const spinTimeoutRef = useRef<number | null>(null);
@@ -180,8 +177,9 @@ function App({ roomId, onLeave }: AppProps) {
       eliminatedMovies,
       winner,
       winners,
+      currentStep,
     }),
-    [desired, allMovies, activeMovies, eliminatedMovies, winner, winners],
+    [desired, allMovies, activeMovies, eliminatedMovies, winner, winners, currentStep],
   );
 
   const handleRemote = useCallback((room: RoomData) => {
@@ -195,6 +193,7 @@ function App({ roomId, onLeave }: AppProps) {
     setEliminatedMovies(room.eliminatedMovies);
     setWinner(room.winner);
     setWinners(room.winners);
+    setCurrentStep(room.currentStep ?? "prep");
     setCurrentSpin(null);
     setIsSpinning(false);
     setWheelRotation(0);
@@ -514,6 +513,24 @@ function App({ roomId, onLeave }: AppProps) {
 
   const clearWinners = () => setWinners([]);
 
+  const steps = [
+    { id: "prep" as const, label: "Подготовка", cta: "К сбору пула" },
+    { id: "pool" as const, label: "Сбор пула", cta: "К рулетке" },
+    { id: "roulette" as const, label: "Рулетка", cta: "К итогу" },
+    { id: "result" as const, label: "Итог", cta: "Начать новый раунд" },
+  ];
+
+  const stepIndex = steps.findIndex((step) => step.id === currentStep);
+  const goNextStep = () => {
+    if (currentStep === "result") {
+      resetRound();
+      setCurrentStep("prep");
+      return;
+    }
+    const next = steps[stepIndex + 1];
+    if (next) setCurrentStep(next.id);
+  };
+
   const copyShareLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -525,31 +542,26 @@ function App({ roomId, onLeave }: AppProps) {
 
   return (
     <div className="layout-wrapper">
-      <aside className="sidebar">
-        <div className="sidebar__logo">
-          <Clapperboard color="var(--accent)" size={28} />
-        </div>
-        <nav className="sidebar__nav">
-          {[
-            { id: "roulette", label: "Рулетка", icon: Home },
-            { id: "desired", label: "Желаемые", icon: Heart },
-            { id: "winners", label: "Победители", icon: Trophy },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              className={`sidebar__item${activeView === id ? " active" : ""}`}
-              onClick={() => setActiveView(id as typeof activeView)}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar__bottom" />
-      </aside>
-
       <div className="main-content">
+        <header className="stagebar">
+          <div className="stagebar__steps">
+            {steps.map((step, index) => (
+              <button
+                key={step.id}
+                type="button"
+                className={`stagebar__step${step.id === currentStep ? " active" : ""}${index < stepIndex ? " done" : ""}`}
+                onClick={() => setCurrentStep(step.id)}
+              >
+                <span>{index + 1}</span>
+                <strong>{step.label}</strong>
+              </button>
+            ))}
+          </div>
+          <button type="button" className="stagebar__cta" onClick={goNextStep}>
+            {steps[stepIndex]?.cta}
+          </button>
+        </header>
+
         <header className="hero">
           <div>
             <p className="hero__kicker">Комната: {roomId}</p>
@@ -603,10 +615,10 @@ function App({ roomId, onLeave }: AppProps) {
 
         {toast && <p className="toast">{toast}</p>}
 
-        {activeView === "roulette" && (
+        {(currentStep === "prep" || currentStep === "pool" || currentStep === "roulette") && (
           <main className="layout">
             <div className="layout__col">
-              <section className="panel">
+              {(currentStep === "prep") && (<section className="panel">
                 <div className="panel__header">
                   <PlusCircle size={20} className="panel__icon" />
                   <div>
@@ -683,9 +695,9 @@ function App({ roomId, onLeave }: AppProps) {
                     </div>
                   </div>
                 )}
-              </section>
+              </section>)}
 
-              <section className="panel empty-panel">
+              {(currentStep === "pool") && (<section className="panel empty-panel">
                 <div className="panel__header panel__header--between">
                   <div className="panel__header-left">
                     <ListFilter size={20} className="panel__icon" />
@@ -733,9 +745,9 @@ function App({ roomId, onLeave }: AppProps) {
                     ))}
                   </ul>
                 )}
-              </section>
+              </section>)}
 
-              <section className="panel desired-panel">
+              {(currentStep === "pool") && (<section className="panel desired-panel">
                 <div className="panel__header panel__header--between">
                   <div className="panel__header-left">
                     <Heart size={20} className="panel__icon" />
@@ -755,6 +767,17 @@ function App({ roomId, onLeave }: AppProps) {
                       В рулетку все ({desired.length})
                     </button>
                   )}
+                </div>
+                <div className="desired-quick">
+                  <button type="button" onClick={() => addDesiredToRoulette()}>все</button>
+                  <button type="button" onClick={() => {
+                    const grouped = desiredGroups.flatMap(([, entries]) => entries.slice(0, 2));
+                    addDesiredToRoulette(grouped);
+                  }}>по 2 от каждого</button>
+                  <button type="button" onClick={() => {
+                    const unseen = desired.filter((entry) => !winners.some((w) => normalizeTitle(w.title) === normalizeTitle(entry.title)));
+                    addDesiredToRoulette(unseen);
+                  }}>только непросмотренные</button>
                 </div>
                 {desiredGroups.length === 0 ? (
                   <p className="desired-empty">
@@ -776,15 +799,15 @@ function App({ roomId, onLeave }: AppProps) {
                 <button
                   type="button"
                   className="reset-button desired-panel__open"
-                  onClick={() => setActiveView("desired")}
+                  onClick={() => setCurrentStep("prep")}
                 >
                   Открыть желаемые
                 </button>
-              </section>
+              </section>)}
             </div>
 
             <div className="layout__col">
-              <section className="panel">
+              {(currentStep === "roulette") && (<section className="panel">
                 <div className="panel__header">
                   <Shuffle size={20} className="panel__icon" />
                   <div>
@@ -915,12 +938,12 @@ function App({ roomId, onLeave }: AppProps) {
                     </div>
                   )}
                 </div>
-              </section>
+              </section>)}
             </div>
           </main>
         )}
 
-        {activeView === "desired" && (
+        {false && (
           <main className="layout layout--single">
             <section className="panel desired-panel">
               <div className="panel__header panel__header--between">
@@ -939,7 +962,7 @@ function App({ roomId, onLeave }: AppProps) {
                     className="reset-button"
                     onClick={() => {
                       addDesiredToRoulette();
-                      setActiveView("roulette");
+                      setCurrentStep("pool");
                     }}
                   >
                     В рулетку все ({desired.length})
@@ -1050,7 +1073,7 @@ function App({ roomId, onLeave }: AppProps) {
                       className="desired-form__add-all"
                       onClick={() => {
                         addDesiredToRoulette();
-                        setActiveView("roulette");
+                        setCurrentStep("pool");
                       }}
                     >
                       В рулетку все ({desired.length})
@@ -1111,22 +1134,22 @@ function App({ roomId, onLeave }: AppProps) {
           </main>
         )}
 
-        {activeView === "winners" && (
+        {currentStep === "result" && (
           <main className="layout layout--single">
             <section className="panel history-panel">
               <div className="panel__header panel__header--between">
                 <div className="panel__header-left">
                   <Trophy size={20} className="panel__icon" />
                   <div>
-                    <h2 className="panel__title">История победителей</h2>
+                    <h2 className="panel__title">Итог раунда</h2>
                     <p className="panel__subtitle">
-                      Что смотрели на прошлых вечерах
+                      Победитель и история текущего раунда
                     </p>
                   </div>
                 </div>
                 {winners.length > 0 && (
-                  <button className="reset-button" onClick={clearWinners}>
-                    <RefreshCw size={14} /> Сбросить
+                  <button className="reset-button" onClick={() => { clearWinners(); resetRound(); setCurrentStep("prep"); }}>
+                    Начать новый раунд
                   </button>
                 )}
               </div>

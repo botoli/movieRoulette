@@ -13,6 +13,7 @@ export type DesiredEntry = {
 export type RoomData = {
   id: string;
   updatedAt: number;
+  currentStep: "prep" | "pool" | "roulette" | "result";
   desired: DesiredEntry[];
   allMovies: MovieEntry[];
   activeMovies: MovieEntry[];
@@ -44,6 +45,7 @@ export function emptyRoom(id: string): RoomData {
   return {
     id,
     updatedAt: Date.now(),
+    currentStep: "prep",
     desired: [],
     allMovies: [],
     activeMovies: [],
