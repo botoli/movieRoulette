@@ -793,7 +793,7 @@ function App({ roomId, onLeave }: AppProps) {
                   className="reset-button desired-panel__open"
                   onClick={() => setCurrentStep("prep")}
                 >
-                  Открыть желаемые
+                  Добавить фильм
                 </button>
               </section>)}
             </div>
