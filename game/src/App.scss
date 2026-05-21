@@ -696,25 +696,67 @@
   transform-origin: top center;
   z-index: 0;
 }
-.roulette__segments {
-  position: absolute;
-  inset: 12px;
-  border-radius: 50%;
-  /* УБРАНО: mask-image — он скрывал сегменты */
-  opacity: 1;
-}
 .roulette__wheel {
+  --ui-duration: 200ms;
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   transform-origin: center;
   will-change: transform;
-  transition: transform 3s cubic-bezier(0.15, 0, 0.15, 1); /* плавное замедление */
+  transition: transform var(--ui-duration) ease;
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.45));
 }
 
-.roulette__wheel--spinning {
+.roulette__wheel-bg,
+.roulette__wheel-dividers,
+.roulette__wheel-content {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.roulette__wheel-bg {
+  z-index: 0;
+}
+
+.roulette__segments {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  opacity: 1;
+  background-blend-mode: soft-light;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), inset 0 0 50px rgba(0,0,0,0.38);
+}
+
+.roulette__wheel-dividers {
+  z-index: 1;
+}
+
+.roulette__wheel-content {
+  z-index: 2;
+}
+
+.roulette__wheel.is-spinning {
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+}
+
+.roulette__wheel.is-eliminating .roulette__node-card {
+  transition: transform var(--ui-duration) ease, filter var(--ui-duration) ease, opacity var(--ui-duration) ease;
+}
+
+.roulette__wheel.is-eliminating .roulette__node-card:hover {
+  transform: none;
+}
+
+.roulette__node-card.is-eliminating {
+  filter: grayscale(0.88) saturate(0.45);
+  opacity: 0.35;
+  transform: scale(0.94);
+}
+
+.roulette__node-card.is-winner {
+  box-shadow: 0 0 0 1px rgba(209,166,92,0.45), 0 10px 24px rgba(209,166,92,0.18);
 }
 
 .roulette__node {
@@ -984,48 +1026,6 @@
   perspective: 900px;
 }
 
-.roulette__wheel {
-  transition: transform 200ms ease;
-  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.45));
-}
-
-.roulette__wheel::before {
-  content: "";
-  position: absolute;
-  inset: 6%;
-  border-radius: 50%;
-  border: 1px solid rgba(209, 166, 92, 0.32);
-  pointer-events: none;
-}
-
-.roulette__segments {
-  background-blend-mode: soft-light;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), inset 0 0 50px rgba(0,0,0,0.38);
-}
-
-.roulette__pointer {
-  box-shadow: 0 0 0 1px rgba(209,166,92,0.45), 0 0 16px rgba(209,166,92,0.3);
-}
-
-.roulette__node-card {
-  transition: transform 200ms ease, filter 200ms ease, opacity 200ms ease;
-  transform-style: preserve-3d;
-}
-
-.roulette__node:hover .roulette__node-card {
-  transform: translateY(-2px) rotateX(2deg);
-  filter: brightness(1.04);
-}
-
-.roulette__node-card--eliminating {
-  filter: grayscale(0.88) saturate(0.45);
-  opacity: 0.35;
-  transform: scale(0.94);
-}
-
-.roulette__node-card--winner {
-  box-shadow: 0 0 0 1px rgba(209,166,92,0.45), 0 10px 24px rgba(209,166,92,0.18);
-}
 
 .suggestion-card__poster img,
 .roulette__node-poster img,
@@ -1034,6 +1034,19 @@
   box-shadow: 0 8px 20px rgba(0,0,0,.35);
 }
 
-button, .member-chip, .suggestion-card {
-  transition: all 200ms ease;
+
+.roulette__node-card {
+  transition: transform 200ms ease, filter 200ms ease, opacity 200ms ease;
 }
+.roulette__node-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+.roulette__node--compact .roulette__node-card { width: 100px; }
+.roulette__node--compact .roulette__node-poster { width: 50px; height: 72px; }
+.roulette__node--compact .roulette__node-title { font-size: 12px; max-width: 92px; }
+.roulette__node--minimal .roulette__node-card { width: 88px; padding: 4px 6px; }
+.roulette__node--minimal .roulette__node-title { font-size: 11px; max-width: 80px; }

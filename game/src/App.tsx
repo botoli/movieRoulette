@@ -56,20 +56,17 @@ type PoiskkinoResponse = {
   docs?: PoiskkinoDoc[];
 };
 
+const UI_TRANSITION_MS = 200;
 const SPIN_DURATION_MS = 3200;
+const SPIN_EASING = "cubic-bezier(0.09, 0.85, 0.18, 1)";
 const MAX_MOVIES = 100;
 const POISKKINO_BASE_URL = "https://api.poiskkino.dev/v1.4/movie/search";
 const START_ANGLE = -90;
 
 const normalizeTitle = (value: string) => value.trim().toLowerCase();
 
-const getTitleScale = (title: string) => {
-  const length = title.length;
-  if (length <= 16) return 1;
-  if (length <= 24) return 0.9;
-  if (length <= 32) return 0.82;
-  return 0.74;
-};
+const truncateTitle = (title: string, maxLength: number) =>
+  title.length <= maxLength ? title : `${title.slice(0, maxLength - 1)}…`;
 
 const buildWheelGradient = (count: number) => {
   if (count <= 1) {
@@ -131,6 +128,15 @@ function App({ roomId, onLeave }: AppProps) {
     () => buildWheelGradient(activeMovies.length),
     [activeMovies.length],
   );
+
+
+  const wheelDisplayMode = useMemo(() => {
+    if (activeMovies.length <= 8) return "full" as const;
+    if (activeMovies.length <= 14) return "compact" as const;
+    return "minimal" as const;
+  }, [activeMovies.length]);
+
+  const wheelStateClass = `${isSpinning ? " is-spinning" : ""}${eliminatingTitle ? " is-eliminating" : ""}${winner ? " is-winner" : ""}`;
 
   const movieSet = useMemo(
     () => new Set(allMovies.map((movie) => normalizeTitle(movie.title))),
@@ -470,7 +476,7 @@ function App({ roomId, onLeave }: AppProps) {
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         setWheelTransition(
-          `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.09, 0.85, 0.18, 1)`,
+          `transform ${SPIN_DURATION_MS}ms ${SPIN_EASING}`,
         );
         setWheelRotation(rotation);
       });
@@ -495,7 +501,7 @@ function App({ roomId, onLeave }: AppProps) {
           return next;
         });
         setEliminatingTitle(null);
-      }, 280);
+      }, UI_TRANSITION_MS);
       setIsSpinning(false);
     }, SPIN_DURATION_MS);
   };
@@ -803,56 +809,73 @@ function App({ roomId, onLeave }: AppProps) {
                         )}
                         <div className="roulette__pointer" />
                         <div
-                          className={`roulette__wheel${
-                            isSpinning ? " roulette__wheel--spinning" : ""
-                          }`}
+                          className={`roulette__wheel${wheelStateClass}`}
                           style={{
                             transform: `rotate(${wheelRotation}deg)`,
                             transition: wheelTransition,
                           }}
                         >
-                          <div
-                            className="roulette__segments"
-                            style={{ background: wheelGradient }}
-                          />
-                          {activeMovies.map((item, index) => {
-                            const angle =
-                              START_ANGLE + (360 / activeMovies.length) * index;
-                            const titleScale = getTitleScale(item.title);
-                            return (
-                              <div
-                                className="roulette__node"
-                                key={`${item.title}-${index}`}
-                                style={{
-                                  transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--roulette-radius) * -1))`,
-                                }}
-                              >
+                          <div className="roulette__wheel-bg">
+                            <div
+                              className="roulette__segments"
+                              style={{ background: wheelGradient }}
+                            />
+                          </div>
+                          <div className="roulette__wheel-dividers">
+                            {activeMovies.map((_, index) => {
+                              const step = 360 / activeMovies.length;
+                              const dividerAngle = START_ANGLE + step * index;
+                              return (
                                 <div
-                                  className={`roulette__node-card${eliminatingTitle === item.title ? " roulette__node-card--eliminating" : ""}${winner?.title === item.title ? " roulette__node-card--winner" : ""}`}
-                                  style={{ transform: `rotate(${-angle}deg)` }}
+                                  key={`divider-${index}`}
+                                  className="roulette__divider"
+                                  style={{
+                                    transform: `translate(-50%, -100%) rotate(${dividerAngle}deg)`,
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="roulette__wheel-content">
+                            {activeMovies.map((item, index) => {
+                              const step = 360 / activeMovies.length;
+                              const centerAngle = START_ANGLE + step * index + step / 2;
+                              const hasPoster = wheelDisplayMode !== "minimal";
+                              const title =
+                                wheelDisplayMode === "full"
+                                  ? item.title
+                                  : wheelDisplayMode === "compact"
+                                    ? truncateTitle(item.title, 22)
+                                    : truncateTitle(item.title, 14);
+
+                              return (
+                                <div
+                                  className={`roulette__node roulette__node--${wheelDisplayMode}`}
+                                  key={`${item.title}-${index}`}
+                                  style={{
+                                    transform: `translate(-50%, -50%) rotate(${centerAngle}deg) translateY(calc(var(--roulette-radius) * -1))`,
+                                  }}
                                 >
-                                  <div className="roulette__node-poster">
-                                    {item.posterUrl ? (
-                                      <img
-                                        src={item.posterUrl}
-                                        alt={item.title}
-                                      />
-                                    ) : (
-                                      <Film size={18} />
-                                    )}
-                                  </div>
                                   <div
-                                    className="roulette__node-title"
-                                    style={{
-                                      transform: `scale(${titleScale})`,
-                                    }}
+                                    className={`roulette__node-card${eliminatingTitle === item.title ? " is-eliminating" : ""}${winner?.title === item.title ? " is-winner" : ""}`}
+                                    style={{ transform: `rotate(${-centerAngle}deg)` }}
+                                    title={item.title}
                                   >
-                                    {item.title}
+                                    {hasPoster && (
+                                      <div className="roulette__node-poster">
+                                        {item.posterUrl ? (
+                                          <img src={item.posterUrl} alt={item.title} />
+                                        ) : (
+                                          <Film size={wheelDisplayMode === "compact" ? 14 : 18} />
+                                        )}
+                                      </div>
+                                    )}
+                                    <div className="roulette__node-title">{title}</div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
                         <div className="roulette__center">
                           <Film size={18} color="var(--accent)" />
