@@ -115,6 +115,7 @@ function App({ roomId, onLeave }: AppProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [wheelTransition, setWheelTransition] = useState("none");
+  const [eliminatingTitle, setEliminatingTitle] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<
     "roulette" | "desired" | "winners"
   >("roulette");
@@ -198,6 +199,7 @@ function App({ roomId, onLeave }: AppProps) {
     setIsSpinning(false);
     setWheelRotation(0);
     setWheelTransition("none");
+    setEliminatingTitle(null);
     setIsReady(true);
   }, []);
 
@@ -480,16 +482,20 @@ function App({ roomId, onLeave }: AppProps) {
 
     spinTimeoutRef.current = window.setTimeout(() => {
       setCurrentSpin(target);
-      setEliminatedMovies((prev) => [target, ...prev]);
-      setActiveMovies((prev) => {
-        const next = prev.filter((item) => item.title !== target.title);
-        if (next.length === 1) {
-          const finalWinner = next[0];
-          setWinner(finalWinner);
-          setWinners((prevWinners) => [finalWinner, ...prevWinners]);
-        }
-        return next;
-      });
+      setEliminatingTitle(target.title);
+      window.setTimeout(() => {
+        setEliminatedMovies((prev) => [target, ...prev]);
+        setActiveMovies((prev) => {
+          const next = prev.filter((item) => item.title !== target.title);
+          if (next.length === 1) {
+            const finalWinner = next[0];
+            setWinner(finalWinner);
+            setWinners((prevWinners) => [finalWinner, ...prevWinners]);
+          }
+          return next;
+        });
+        setEliminatingTitle(null);
+      }, 280);
       setIsSpinning(false);
     }, SPIN_DURATION_MS);
   };
@@ -502,6 +508,7 @@ function App({ roomId, onLeave }: AppProps) {
     setIsSpinning(false);
     setWheelRotation(0);
     setWheelTransition("none");
+    setEliminatingTitle(null);
     scheduleSave();
   };
 
@@ -821,7 +828,7 @@ function App({ roomId, onLeave }: AppProps) {
                                 }}
                               >
                                 <div
-                                  className="roulette__node-card"
+                                  className={`roulette__node-card${eliminatingTitle === item.title ? " roulette__node-card--eliminating" : ""}${winner?.title === item.title ? " roulette__node-card--winner" : ""}`}
                                   style={{ transform: `rotate(${-angle}deg)` }}
                                 >
                                   <div className="roulette__node-poster">
