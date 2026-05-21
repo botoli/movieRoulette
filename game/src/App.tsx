@@ -20,9 +20,11 @@ import { useRoomSync } from "./useRoomSync";
 import {
   MEMBERS,
   normalizeMemberName,
+  normalizeMovieTitle,
   type DesiredEntry,
   type MovieEntry,
   type RoomData,
+  withMovieKey,
 } from "../shared/types";
 
 type AppProps = {
@@ -61,7 +63,6 @@ const MAX_MOVIES = 100;
 const POISKKINO_BASE_URL = "https://api.poiskkino.dev/v1.4/movie/search";
 const START_ANGLE = -90;
 
-const normalizeTitle = (value: string) => value.trim().toLowerCase();
 
 const getTitleScale = (title: string) => {
   const length = title.length;
@@ -103,6 +104,7 @@ function App({ roomId, onLeave }: AppProps) {
   const [desired, setDesired] = useState<DesiredEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [rutubeValue, setRutubeValue] = useState("");
+  const [batchInputValue, setBatchInputValue] = useState("");
   const [nameValue, setNameValue] = useState("");
   const [desiredInputValue, setDesiredInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -133,7 +135,7 @@ function App({ roomId, onLeave }: AppProps) {
   );
 
   const movieSet = useMemo(
-    () => new Set(allMovies.map((movie) => normalizeTitle(movie.title))),
+    () => new Set(allMovies.map((movie) => movie.normalizedTitle)),
     [allMovies],
   );
   const canAddMore = allMovies.length < MAX_MOVIES;
@@ -190,11 +192,11 @@ function App({ roomId, onLeave }: AppProps) {
       spinTimeoutRef.current = null;
     }
     setDesired(room.desired);
-    setAllMovies(room.allMovies);
-    setActiveMovies(room.activeMovies);
-    setEliminatedMovies(room.eliminatedMovies);
-    setWinner(room.winner);
-    setWinners(room.winners);
+    setAllMovies(room.allMovies.map((movie) => withMovieKey(movie)));
+    setActiveMovies(room.activeMovies.map((movie) => withMovieKey(movie)));
+    setEliminatedMovies(room.eliminatedMovies.map((movie) => withMovieKey(movie)));
+    setWinner(room.winner ? withMovieKey(room.winner) : null);
+    setWinners(room.winners.map((movie) => withMovieKey(movie)));
     setCurrentSpin(null);
     setIsSpinning(false);
     setWheelRotation(0);
@@ -275,7 +277,7 @@ function App({ roomId, onLeave }: AppProps) {
             } as Suggestion;
           })
           .filter((item): item is Suggestion => item !== null)
-          .filter((item) => !movieSet.has(normalizeTitle(item.title)))
+          .filter((item) => !movieSet.has(normalizeMovieTitle(item.title)))
           .slice(0, 6);
         setSuggestions(items);
       } catch (error) {
@@ -331,7 +333,7 @@ function App({ roomId, onLeave }: AppProps) {
             } as Suggestion;
           })
           .filter((item): item is Suggestion => item !== null)
-          .filter((item) => !movieSet.has(normalizeTitle(item.title)))
+          .filter((item) => !movieSet.has(normalizeMovieTitle(item.title)))
           .slice(0, 6);
         setDesiredSuggestions(items);
       } catch (error) {
@@ -366,19 +368,19 @@ function App({ roomId, onLeave }: AppProps) {
     if (entries.length === 0) return;
     setAllMovies((prev) => {
       const existing = new Set(
-        prev.map((movie) => normalizeTitle(movie.title)),
+        prev.map((movie) => movie.normalizedTitle),
       );
       const available = Math.max(0, MAX_MOVIES - prev.length);
       const filtered = entries
-        .filter((movie) => !existing.has(normalizeTitle(movie.title)))
+        .filter((movie) => !existing.has(movie.normalizedTitle))
         .slice(0, available);
       if (filtered.length === 0) return prev;
       setActiveMovies((active) => {
         const activeSet = new Set(
-          active.map((movie) => normalizeTitle(movie.title)),
+          active.map((movie) => movie.normalizedTitle),
         );
         const toAdd = filtered.filter(
-          (movie) => !activeSet.has(normalizeTitle(movie.title)),
+          (movie) => !activeSet.has(movie.normalizedTitle),
         );
         return toAdd.length ? [...active, ...toAdd] : active;
       });
@@ -389,14 +391,14 @@ function App({ roomId, onLeave }: AppProps) {
   const addMovie = (value: string, posterUrl?: string, rutubeUrl?: string) => {
     const trimmed = value.trim();
     if (!trimmed) return;
-    if (movieSet.has(normalizeTitle(trimmed))) return;
+    if (movieSet.has(normalizeMovieTitle(trimmed))) return;
     if (allMovies.length >= MAX_MOVIES) return;
     const trimmedRutube = rutubeUrl?.trim();
-    const entry: MovieEntry = {
+    const entry: MovieEntry = withMovieKey({
       title: trimmed,
       posterUrl,
       rutubeUrl: trimmedRutube ? trimmedRutube : undefined,
-    };
+    });
     addMovies([entry]);
     setInputValue("");
     setRutubeValue("");
@@ -444,12 +446,84 @@ function App({ roomId, onLeave }: AppProps) {
     if (list.length === 0) return;
     const available = Math.max(0, MAX_MOVIES - allMovies.length);
     const toAdd = list
-      .filter((entry) => !movieSet.has(normalizeTitle(entry.title)))
+      .filter((entry) => !movieSet.has(normalizeMovieTitle(entry.title)))
       .slice(0, available);
     if (toAdd.length === 0) return;
-    addMovies(toAdd.map((entry) => ({ title: entry.title })));
+    addMovies(toAdd.map((entry) => withMovieKey({ title: entry.title })));
     const ids = new Set(toAdd.map((entry) => entry.id));
     setDesired((prev) => prev.filter((entry) => !ids.has(entry.id)));
+    scheduleSave();
+  };
+
+
+
+  const parseBatchMovies = (value: string) =>
+    value
+      .split("\n")
+      .map((line) => line.trim().replace(/\s+/g, " "))
+      .filter(Boolean);
+
+  const addBatchMovies = () => {
+    const titles = parseBatchMovies(batchInputValue);
+    if (titles.length === 0) return;
+
+    const existing = new Set(allMovies.map((movie) => movie.normalizedTitle));
+    const available = Math.max(0, MAX_MOVIES - allMovies.length);
+    if (available <= 0) {
+      setToast("Лимит фильмов достигнут");
+      return;
+    }
+
+    const prepared = titles.map((title) => withMovieKey({ title }));
+    const uniqueFromBatch: MovieEntry[] = [];
+    const seenBatch = new Set<string>();
+    let duplicateCount = 0;
+
+    for (const movie of prepared) {
+      if (existing.has(movie.normalizedTitle) || seenBatch.has(movie.normalizedTitle)) {
+        duplicateCount += 1;
+        continue;
+      }
+      seenBatch.add(movie.normalizedTitle);
+      uniqueFromBatch.push(movie);
+    }
+
+    const limited = uniqueFromBatch.slice(0, available);
+    duplicateCount += Math.max(0, uniqueFromBatch.length - limited.length);
+
+    if (limited.length > 0) {
+      addMovies(limited);
+      setBatchInputValue("");
+      scheduleSave();
+    }
+
+    setToast(`Добавлено: ${limited.length}, пропущено как дубль: ${duplicateCount}`);
+  };
+
+  const addAllToRoulette = () => {
+    setActiveMovies(allMovies);
+    setEliminatedMovies([]);
+    setWinner(null);
+    setCurrentSpin(null);
+    scheduleSave();
+  };
+
+  const clearNewMovies = () => {
+    setAllMovies((prev) => prev.filter((movie) => !activeMovies.some((a) => a.normalizedTitle === movie.normalizedTitle)));
+    scheduleSave();
+  };
+
+  const leaveOnlyUniqueMovies = () => {
+    const seen = new Set<string>();
+    const unique = allMovies.filter((movie) => {
+      if (seen.has(movie.normalizedTitle)) return false;
+      seen.add(movie.normalizedTitle);
+      return true;
+    });
+    setAllMovies(unique);
+    setActiveMovies((prev) => prev.filter((movie) => seen.has(movie.normalizedTitle)));
+    setEliminatedMovies((prev) => prev.filter((movie) => seen.has(movie.normalizedTitle)));
+    setWinners((prev) => prev.filter((movie) => seen.has(movie.normalizedTitle)));
     scheduleSave();
   };
 
@@ -646,6 +720,17 @@ function App({ roomId, onLeave }: AppProps) {
                     VITE_POISKKINO_TOKEN.
                   </p>
                 )}
+                <div className="batch-input">
+                  <textarea
+                    value={batchInputValue}
+                    onChange={(event) => setBatchInputValue(event.target.value)}
+                    placeholder="Массовый ввод: 1 строка = 1 фильм"
+                    aria-label="Массовый ввод фильмов"
+                  />
+                  <button type="button" onClick={addBatchMovies} disabled={!canAddMore}>
+                    Добавить {parseBatchMovies(batchInputValue).length} фильмов
+                  </button>
+                </div>
                 <input
                   className="input-row__link"
                   value={rutubeValue}
@@ -697,6 +782,9 @@ function App({ roomId, onLeave }: AppProps) {
                     </div>
                   </div>
                   <div className="panel__header-actions">
+                    <button type="button" className="reset-button" onClick={addAllToRoulette}>Добавить все в рулетку</button>
+                    <button type="button" className="reset-button" onClick={clearNewMovies}>Очистить новые</button>
+                    <button type="button" className="reset-button" onClick={leaveOnlyUniqueMovies}>Оставить только уникальные</button>
                     <div className="badge">{activeMovies.length} шт.</div>
                     {showReset && (
                       <button

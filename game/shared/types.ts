@@ -1,5 +1,6 @@
 export type MovieEntry = {
   title: string;
+  normalizedTitle: string;
   posterUrl?: string;
   rutubeUrl?: string;
 };
@@ -38,6 +39,18 @@ export function memberKey(name: string): MemberName | null {
   return (MEMBERS as readonly string[]).includes(normalized)
     ? (normalized as MemberName)
     : null;
+}
+
+export function normalizeMovieTitle(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLocaleLowerCase("ru-RU");
+}
+
+export function withMovieKey(movie: Omit<MovieEntry, "normalizedTitle">): MovieEntry {
+  return {
+    ...movie,
+    title: movie.title.trim().replace(/\s+/g, " "),
+    normalizedTitle: normalizeMovieTitle(movie.title),
+  };
 }
 
 export function emptyRoom(id: string): RoomData {
